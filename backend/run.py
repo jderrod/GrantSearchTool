@@ -1,3 +1,10 @@
-# Entry point for the backend
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Backend is running!"
+
 if __name__ == "__main__":
-    print("Backend is ready!")
+    app.run(debug=True)
