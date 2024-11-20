@@ -1,64 +1,68 @@
 from flask import Flask, jsonify, request
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import sqlite3
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
 # Database connection function
 def connect_db():
     conn = sqlite3.connect("bmgf_grants.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Ensures rows behave like dictionaries
     return conn
 
-
 @app.route("/api/grants", methods=["GET"])
+@cross_origin()
 def get_grants():
-    conn = connect_db()
-    cursor = conn.cursor()
-
-    # Get query parameters
-    search_term = request.args.get("search_term", "").strip()
+    search_term = request.args.get("search_term", "")
+    region = request.args.get("region", None)
     limit = int(request.args.get("limit", 10))
     offset = int(request.args.get("offset", 0))
 
-    # Base query for results
-    query = "SELECT * FROM grants WHERE 1=1"
-    count_query = "SELECT COUNT(*) FROM grants WHERE 1=1"
+    query = """
+        SELECT * FROM grants
+        WHERE 1=1
+    """
+    count_query = """
+        SELECT COUNT(*) FROM grants
+        WHERE 1=1
+    """
     params = []
+    count_params = []
 
-    # Add search term filter
     if search_term:
-        query += " AND (grantee LIKE ? OR purpose LIKE ?)"
-        count_query += " AND (grantee LIKE ? OR purpose LIKE ?)"
+        query += " AND (LOWER(grantee) LIKE LOWER(?) OR LOWER(purpose) LIKE LOWER(?))"
+        count_query += " AND (LOWER(grantee) LIKE LOWER(?) OR LOWER(purpose) LIKE LOWER(?))"
         params.extend([f"%{search_term}%", f"%{search_term}%"])
+        count_params.extend([f"%{search_term}%", f"%{search_term}%"])
 
-    # Add LIMIT and OFFSET to the query
+    if region:
+        query += " AND LOWER(region_served) = LOWER(?)"
+        count_query += " AND LOWER(region_served) = LOWER(?)"
+        params.append(region)
+        count_params.append(region)
+
     query += " LIMIT ? OFFSET ?"
-    params_with_pagination = params + [limit, offset]  # Add limit and offset only to the query
+    params.extend([limit, offset])
 
-    # Execute the count query
-    print("Count Query:", count_query)
-    print("Parameters for Count Query:", params)
-    cursor.execute(count_query, params)
-    total_results = cursor.fetchone()[0]
+    conn = connect_db()
+    cursor = conn.cursor()
 
-    # Execute the main query with pagination
-    print("Query:", query)
-    print("Parameters for Query:", params_with_pagination)
-    cursor.execute(query, params_with_pagination)
+    # Fetch grants
+    cursor.execute(query, params)
     rows = cursor.fetchall()
 
-    # Convert rows to dictionaries
-    grants = [dict(row) for row in rows]
+    # Fetch total results
+    cursor.execute(count_query, count_params)
+    total_results = cursor.fetchone()[0]
 
-    # Close database connection
+    grants = [dict(row) for row in rows]
     conn.close()
 
     return jsonify({
         "grants": grants,
         "total_results": total_results
     })
-
 
 
 
