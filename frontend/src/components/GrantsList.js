@@ -9,7 +9,7 @@ const GrantsList = () => {
     const [totalResults, setTotalResults] = useState(0);
     const resultsPerPage = 10;
 
-    const regions = ["All", "America", "Europe", "Africa", "Asia", "Oceania"]; // Example regions
+    const regions = ["All", "USA", "Europe", "Africa", "Asia", "Oceania"]; // Example regions
 
     const handleSearch = async (page = 1) => {
         try {
@@ -75,12 +75,22 @@ const GrantsList = () => {
                     <ul className="list-group mb-3">
                         {grants.map((grant, index) => (
                             <li key={index} className="list-group-item">
-                                <h5>{grant.grantee}</h5>
-                                <p>{grant.purpose}</p>
+                                <h5>{grant.funder_name}</h5>
+                                <p>{grant.description}</p>
                                 <p>
-                                    Amount Committed: $
-                                    {grant.amount_committed.toLocaleString()}
+                                    <strong>Geographic Scope:</strong> {grant.geographic_scope || "N/A"}
                                 </p>
+                                <p>
+                                    <strong>Application Procedures:</strong>{" "}
+                                    {grant.app_procedures_text || "Not specified"}
+                                </p>
+                                <a
+                                    href={grant.app_procedures_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    View Application Details
+                                </a>
                             </li>
                         ))}
                     </ul>

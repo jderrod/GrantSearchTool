@@ -7,7 +7,7 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Database connection function
 def connect_db():
-    conn = sqlite3.connect("bmgf_grants.db", check_same_thread=False)
+    conn = sqlite3.connect("grants_data.db", check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Ensures rows behave like dictionaries
     return conn
 
@@ -20,7 +20,19 @@ def get_grants():
     offset = int(request.args.get("offset", 0))
 
     query = """
-        SELECT * FROM grants
+        SELECT 
+            funder_name, 
+            website, 
+            description, 
+            geographic_scope, 
+            eligibility, 
+            deadlines, 
+            grantmaker_type, 
+            grants_history_link, 
+            last_updated, 
+            application_guidelines, 
+            application_website 
+        FROM grants
         WHERE 1=1
     """
     count_query = """
@@ -31,14 +43,14 @@ def get_grants():
     count_params = []
 
     if search_term:
-        query += " AND (LOWER(grantee) LIKE LOWER(?) OR LOWER(purpose) LIKE LOWER(?))"
-        count_query += " AND (LOWER(grantee) LIKE LOWER(?) OR LOWER(purpose) LIKE LOWER(?))"
+        query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
+        count_query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
         params.extend([f"%{search_term}%", f"%{search_term}%"])
         count_params.extend([f"%{search_term}%", f"%{search_term}%"])
 
     if region:
-        query += " AND LOWER(region_served) = LOWER(?)"
-        count_query += " AND LOWER(region_served) = LOWER(?)"
+        query += " AND LOWER(geographic_scope) = LOWER(?)"
+        count_query += " AND LOWER(geographic_scope) = LOWER(?)"
         params.append(region)
         count_params.append(region)
 
@@ -64,6 +76,26 @@ def get_grants():
         "total_results": total_results
     })
 
+
+@app.route("/api/grants/<int:grant_id>", methods=["GET"])
+@cross_origin()
+def get_grant(grant_id):
+    """
+    Fetch a single grant by its ID.
+    """
+    query = """
+        SELECT * FROM grants WHERE id = ?
+    """
+    conn = connect_db()
+    cursor = conn.cursor()
+    cursor.execute(query, (grant_id,))
+    row = cursor.fetchone()
+    conn.close()
+
+    if row:
+        return jsonify(dict(row))
+    else:
+        return jsonify({"error": "Grant not found"}), 404
 
 
 if __name__ == "__main__":
