@@ -1,13 +1,13 @@
 const API_URL = "http://127.0.0.1:5000/api/grants";
 
-// Fetch grants with optional search term, limit, offset, and region
-export const fetchGrants = async (searchTerm, limit = 10, offset = 0, region = "", eligibility = "") => {
+export const fetchGrants = async (searchTerm, limit = 10, offset = 0, region = "", eligibility = "", state = "") => {
     const params = new URLSearchParams({
         search_term: searchTerm,
         limit: limit.toString(),
         offset: offset.toString(),
         region: region,
         eligibility: eligibility,
+        state: state,
     });
 
     const response = await fetch(`http://127.0.0.1:5000/api/grants?${params.toString()}`);
@@ -16,6 +16,7 @@ export const fetchGrants = async (searchTerm, limit = 10, offset = 0, region = "
     }
     return await response.json();
 };
+
 
 
 // Fetch details for a specific grant by ID (optional for a detailed page)

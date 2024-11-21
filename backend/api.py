@@ -15,8 +15,9 @@ def connect_db():
 @cross_origin()
 def get_grants():
     search_term = request.args.get("search_term", "")
-    region = request.args.get("region", None)
-    eligibility = request.args.get("eligibility", None)  # New filter
+    region = request.args.get("region", None)  # Region filter
+    state = request.args.get("state", None)    # State filter
+    eligibility = request.args.get("eligibility", None)
     limit = int(request.args.get("limit", 10))
     offset = int(request.args.get("offset", 0))
 
@@ -50,10 +51,20 @@ def get_grants():
         count_params.extend([f"%{search_term}%", f"%{search_term}%"])
 
     if region:
-        query += " AND LOWER(geographic_scope) = LOWER(?)"
-        count_query += " AND LOWER(geographic_scope) = LOWER(?)"
-        params.append(region)
-        count_params.append(region)
+        if region.lower() == "usa":
+            query += " AND (LOWER(geographic_scope) LIKE '%usa%' OR LOWER(geographic_scope) LIKE '%us states:%')"
+            count_query += " AND (LOWER(geographic_scope) LIKE '%usa%' OR LOWER(geographic_scope) LIKE '%us states:%')"
+        else:
+            query += " AND LOWER(geographic_scope) = LOWER(?)"
+            count_query += " AND LOWER(geographic_scope) = LOWER(?)"
+            params.append(region)
+            count_params.append(region)
+
+    if state:
+        query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
+        count_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
+        params.append(f"%{state}%")
+        count_params.append(f"%{state}%")
 
     if eligibility:
         query += " AND LOWER(eligibility) LIKE LOWER(?)"
@@ -82,6 +93,7 @@ def get_grants():
         "grants": grants,
         "total_results": total_results
     })
+
 
 
 
