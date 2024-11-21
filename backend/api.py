@@ -16,6 +16,7 @@ def connect_db():
 def get_grants():
     search_term = request.args.get("search_term", "")
     region = request.args.get("region", None)
+    eligibility = request.args.get("eligibility", None)  # New filter
     limit = int(request.args.get("limit", 10))
     offset = int(request.args.get("offset", 0))
 
@@ -54,6 +55,12 @@ def get_grants():
         params.append(region)
         count_params.append(region)
 
+    if eligibility:
+        query += " AND LOWER(eligibility) LIKE LOWER(?)"
+        count_query += " AND LOWER(eligibility) LIKE LOWER(?)"
+        params.append(f"%{eligibility}%")
+        count_params.append(f"%{eligibility}%")
+
     query += " LIMIT ? OFFSET ?"
     params.extend([limit, offset])
 
@@ -75,6 +82,7 @@ def get_grants():
         "grants": grants,
         "total_results": total_results
     })
+
 
 
 @app.route("/api/grants/<int:grant_id>", methods=["GET"])

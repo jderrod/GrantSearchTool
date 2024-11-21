@@ -3,19 +3,24 @@ import { fetchGrants } from "../api/grantsApi";
 
 const GrantsList = () => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [region, setRegion] = useState(""); // State for the region filter
+    const [region, setRegion] = useState(""); // Region filter
+    const [eligibility, setEligibility] = useState(""); // Eligibility filter
     const [grants, setGrants] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalResults, setTotalResults] = useState(0);
     const resultsPerPage = 10;
 
-    const regions = ["All", "USA", "Europe", "Africa", "Asia", "Oceania"]; // Example regions
+    const eligibilities = [
+        "Nonprofit organizations",
+        "Educational institutions",
+        "Individuals",
+        "Small businesses",
+    ]; // Example options
 
     const handleSearch = async (page = 1) => {
         try {
             const offset = (page - 1) * resultsPerPage;
-            const selectedRegion = region === "All" ? "" : region;
-            const data = await fetchGrants(searchTerm, resultsPerPage, offset, selectedRegion);
+            const data = await fetchGrants(searchTerm, resultsPerPage, offset, region, eligibility);
             setGrants(data.grants);
             setTotalResults(data.total_results);
             setCurrentPage(page);
@@ -23,20 +28,6 @@ const GrantsList = () => {
             console.error("Error fetching grants:", error);
         }
     };
-
-    const handleNextPage = () => {
-        if (currentPage < Math.ceil(totalResults / resultsPerPage)) {
-            handleSearch(currentPage + 1);
-        }
-    };
-
-    const handlePreviousPage = () => {
-        if (currentPage > 1) {
-            handleSearch(currentPage - 1);
-        }
-    };
-
-    const totalPages = Math.ceil(totalResults / resultsPerPage);
 
     return (
         <div className="container mt-4">
@@ -52,13 +43,14 @@ const GrantsList = () => {
             </div>
             <div className="mb-3">
                 <select
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
+                    value={eligibility}
+                    onChange={(e) => setEligibility(e.target.value)}
                     className="form-select"
                 >
-                    {regions.map((reg) => (
-                        <option key={reg} value={reg}>
-                            {reg}
+                    <option value="">All Eligibilities</option>
+                    {eligibilities.map((option) => (
+                        <option key={option} value={option}>
+                            {option}
                         </option>
                     ))}
                 </select>
@@ -78,41 +70,11 @@ const GrantsList = () => {
                                 <h5>{grant.funder_name}</h5>
                                 <p>{grant.description}</p>
                                 <p>
-                                    <strong>Geographic Scope:</strong> {grant.geographic_scope || "N/A"}
+                                    <strong>Eligibility:</strong> {grant.eligibility || "N/A"}
                                 </p>
-                                <p>
-                                    <strong>Application Procedures:</strong>{" "}
-                                    {grant.app_procedures_text || "Not specified"}
-                                </p>
-                                <a
-                                    href={grant.app_procedures_link}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
-                                    View Application Details
-                                </a>
                             </li>
                         ))}
                     </ul>
-                    <div className="d-flex justify-content-between align-items-center">
-                        <button
-                            onClick={handlePreviousPage}
-                            disabled={currentPage === 1}
-                            className="btn btn-secondary"
-                        >
-                            Previous
-                        </button>
-                        <span>
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={handleNextPage}
-                            disabled={currentPage === totalPages}
-                            className="btn btn-secondary"
-                        >
-                            Next
-                        </button>
-                    </div>
                 </>
             ) : (
                 <p>No grants found.</p>
