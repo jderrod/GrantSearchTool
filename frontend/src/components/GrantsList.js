@@ -20,9 +20,9 @@ const GrantsList = () => {
         "Small businesses",
     ]; // Example eligibilities
 
-    const handleSearch = async (page = 1) => {
+    const handleSearch = async (page = 1, resetPage = false) => {
         try {
-            const offset = (page - 1) * resultsPerPage;
+            const offset = (resetPage ? 0 : (page - 1)) * resultsPerPage;
             const selectedRegion = region === "All" ? "" : region;
             const selectedEligibility = eligibility === "All" ? "" : eligibility;
 
@@ -34,9 +34,16 @@ const GrantsList = () => {
                 selectedEligibility,
                 state
             );
+
             setGrants(data.grants);
             setTotalResults(data.total_results);
-            setCurrentPage(page);
+
+            // Reset the page number only if it's a new search
+            if (resetPage) {
+                setCurrentPage(1);
+            } else {
+                setCurrentPage(page);
+            }
         } catch (error) {
             console.error("Error fetching grants:", error);
         }
@@ -93,7 +100,7 @@ const GrantsList = () => {
                 </select>
             </div>
             <button
-                onClick={() => handleSearch(1)}
+                onClick={() => handleSearch(1, true)}
                 className="btn btn-primary mb-4"
             >
                 Search

@@ -6,8 +6,8 @@ app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 
 # Database connection function
-def connect_db():
-    conn = sqlite3.connect("grants_data.db", check_same_thread=False)
+def connect_db(db_name):
+    conn = sqlite3.connect(db_name, check_same_thread=False)
     conn.row_factory = sqlite3.Row  # Ensures rows behave like dictionaries
     return conn
 
@@ -15,108 +15,119 @@ def connect_db():
 @cross_origin()
 def get_grants():
     search_term = request.args.get("search_term", "")
-    region = request.args.get("region", None)  # Region filter
-    state = request.args.get("state", None)    # State filter
+    region = request.args.get("region", None)
+    state = request.args.get("state", None)
     eligibility = request.args.get("eligibility", None)
     limit = int(request.args.get("limit", 10))
     offset = int(request.args.get("offset", 0))
 
-    query = """
-        SELECT 
-            funder_name, 
-            website, 
-            description, 
-            geographic_scope, 
-            eligibility, 
-            deadlines, 
-            grantmaker_type, 
-            grants_history_link, 
-            last_updated, 
-            application_guidelines, 
-            application_website 
+    # Queries for grants.db
+    grants_query = """
+        SELECT id, title AS funder_name, description, eligibility, 
+               closing_date AS deadlines, submission_url AS current_url, 'federal' AS source
         FROM grants
         WHERE 1=1
     """
-    count_query = """
-        SELECT COUNT(*) FROM grants
+    grants_params = []
+
+    # Queries for grants_data.db
+    grants_data_query = """
+        SELECT id, funder_name, description, eligibility, deadlines, website AS current_url, 'private' AS source
+        FROM grants
         WHERE 1=1
     """
-    params = []
-    count_params = []
+    grants_data_params = []
 
+    # Add filters
     if search_term:
-        query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
-        count_query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
-        params.extend([f"%{search_term}%", f"%{search_term}%"])
-        count_params.extend([f"%{search_term}%", f"%{search_term}%"])
+        grants_query += " AND (LOWER(title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
+        grants_data_query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
+        search_param = f"%{search_term}%"
+        grants_params.extend([search_param, search_param])
+        grants_data_params.extend([search_param, search_param])
 
     if region:
-        if region.lower() == "usa":
-            query += " AND (LOWER(geographic_scope) LIKE '%usa%' OR LOWER(geographic_scope) LIKE '%us states:%')"
-            count_query += " AND (LOWER(geographic_scope) LIKE '%usa%' OR LOWER(geographic_scope) LIKE '%us states:%')"
-        else:
-            query += " AND LOWER(geographic_scope) = LOWER(?)"
-            count_query += " AND LOWER(geographic_scope) = LOWER(?)"
-            params.append(region)
-            count_params.append(region)
+        grants_data_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
+        grants_data_params.append(f"%{region.lower()}%")
 
     if state:
-        query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
-        count_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
-        params.append(f"%{state}%")
-        count_params.append(f"%{state}%")
+        grants_data_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
+        grants_data_params.append(f"%{state.lower()}%")
 
     if eligibility:
-        query += " AND LOWER(eligibility) LIKE LOWER(?)"
-        count_query += " AND LOWER(eligibility) LIKE LOWER(?)"
-        params.append(f"%{eligibility}%")
-        count_params.append(f"%{eligibility}%")
+        grants_query += " AND LOWER(eligibility) LIKE LOWER(?)"
+        grants_data_query += " AND LOWER(eligibility) LIKE LOWER(?)"
+        grants_params.append(f"%{eligibility.lower()}%")
+        grants_data_params.append(f"%{eligibility.lower()}%")
 
-    query += " LIMIT ? OFFSET ?"
-    params.extend([limit, offset])
+    # Separate Queries for Total Results
+    grants_query_no_limit = grants_query
+    grants_data_query_no_limit = grants_data_query
 
-    conn = connect_db()
-    cursor = conn.cursor()
+    # Add Pagination
+    grants_query += " LIMIT ? OFFSET ?"
+    grants_data_query += " LIMIT ? OFFSET ?"
+    grants_params.extend([limit, offset])
+    grants_data_params.extend([limit, offset])
 
-    # Fetch grants
-    cursor.execute(query, params)
-    rows = cursor.fetchall()
+    # Connect and fetch data
+    grants_conn = connect_db("grants.db")
+    grants_data_conn = connect_db("grants_data.db")
+    grants_cursor = grants_conn.cursor()
+    grants_data_cursor = grants_data_conn.cursor()
 
-    # Fetch total results
-    cursor.execute(count_query, count_params)
-    total_results = cursor.fetchone()[0]
+    # Calculate Total Results
+    grants_cursor.execute(grants_query_no_limit, grants_params[:-2])
+    grants_data_cursor.execute(grants_data_query_no_limit, grants_data_params[:-2])
+    total_results = len(grants_cursor.fetchall()) + len(grants_data_cursor.fetchall())
 
-    grants = [dict(row) for row in rows]
-    conn.close()
+    # Fetch Paginated Results
+    grants_cursor.execute(grants_query, grants_params)
+    grants_data_cursor.execute(grants_data_query, grants_data_params)
+
+    grants = [dict(row) for row in grants_cursor.fetchall()]
+    grants_data = [dict(row) for row in grants_data_cursor.fetchall()]
+
+    grants_conn.close()
+    grants_data_conn.close()
+
+    combined_results = grants + grants_data
 
     return jsonify({
-        "grants": grants,
+        "grants": combined_results,
         "total_results": total_results
     })
-
-
 
 
 @app.route("/api/grants/<int:grant_id>", methods=["GET"])
 @cross_origin()
 def get_grant(grant_id):
     """
-    Fetch a single grant by its ID.
+    Fetch a single grant by its ID from either database.
     """
-    query = """
-        SELECT * FROM grants WHERE id = ?
-    """
-    conn = connect_db()
-    cursor = conn.cursor()
-    cursor.execute(query, (grant_id,))
-    row = cursor.fetchone()
-    conn.close()
+    # Search grants.db
+    grants_query = "SELECT * FROM grants WHERE id = ?"
+    grants_conn = connect_db("grants.db")
+    grants_cursor = grants_conn.cursor()
+    grants_cursor.execute(grants_query, (grant_id,))
+    grant = grants_cursor.fetchone()
+    grants_conn.close()
 
-    if row:
-        return jsonify(dict(row))
-    else:
-        return jsonify({"error": "Grant not found"}), 404
+    if grant:
+        return jsonify(dict(grant))
 
+    # Search grants_data.db
+    grants_data_query = "SELECT * FROM grants WHERE id = ?"
+    grants_data_conn = connect_db("grants_data.db")
+    grants_data_cursor = grants_data_conn.cursor()
+    grants_data_cursor.execute(grants_data_query, (grant_id,))
+    grant_data = grants_data_cursor.fetchone()
+    grants_data_conn.close()
+
+    if grant_data:
+        return jsonify(dict(grant_data))
+
+    return jsonify({"error": "Grant not found"}), 404
 
 if __name__ == "__main__":
     app.run(debug=True)
