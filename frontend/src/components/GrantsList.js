@@ -1,28 +1,29 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { fetchGrants } from "../api/grantsApi";
 
 const GrantsList = () => {
     const [searchTerm, setSearchTerm] = useState("");
-    const [region, setRegion] = useState(""); // Region filter
-    const [state, setState] = useState(""); // State filter
-    const [eligibility, setEligibility] = useState(""); // Eligibility filter
+    const [region, setRegion] = useState("");
+    const [state, setState] = useState("");
+    const [eligibility, setEligibility] = useState("");
     const [grants, setGrants] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalResults, setTotalResults] = useState(0);
     const resultsPerPage = 10;
 
-    const regions = ["All", "USA", "Europe", "Asia", "Africa"]; // Example regions
+    const regions = ["All", "USA", "Europe", "Asia", "Africa"];
     const eligibilities = [
         "All",
         "Nonprofit organizations",
         "Educational institutions",
         "Individuals",
         "Small businesses",
-    ]; // Example eligibilities
+    ];
 
-    const handleSearch = async (page = 1, resetPage = false) => {
+    const handleSearch = async (page = 1) => {
         try {
-            const offset = (resetPage ? 0 : (page - 1)) * resultsPerPage;
+            const offset = (page - 1) * resultsPerPage;
             const selectedRegion = region === "All" ? "" : region;
             const selectedEligibility = eligibility === "All" ? "" : eligibility;
 
@@ -34,16 +35,9 @@ const GrantsList = () => {
                 selectedEligibility,
                 state
             );
-
             setGrants(data.grants);
             setTotalResults(data.total_results);
-
-            // Reset the page number only if it's a new search
-            if (resetPage) {
-                setCurrentPage(1);
-            } else {
-                setCurrentPage(page);
-            }
+            setCurrentPage(page);
         } catch (error) {
             console.error("Error fetching grants:", error);
         }
@@ -108,34 +102,42 @@ const GrantsList = () => {
             <h2>Search Results</h2>
             {grants.length > 0 ? (
                 <>
-                    <ul className="list-group mb-3">
+                    <div className="results-container">
                         {grants.map((grant, index) => (
-                            <li key={index} className="list-group-item">
-                                <h5>{grant.funder_name}</h5>
-                                <p>{grant.description}</p>
+                            <div
+                                key={index}
+                                className="grant-card mb-3 p-3 border rounded shadow-sm"
+                            >
+                                <Link to={`/grants/${grant.id}`} className="grant-title-link">
+                                    <h5 className="grant-title">{grant.funder_name}</h5>
+                                </Link>
+                                <p className="grant-description">
+                                    {grant.description && grant.description.length > 600
+                                        ? `${grant.description.slice(0, 600)}...`
+                                        : grant.description || "No description available"}
+                                </p>
                                 <p>
                                     <strong>Geographic Scope:</strong>{" "}
                                     {grant.geographic_scope || "N/A"}
                                 </p>
                                 <p>
                                     <strong>Eligibility:</strong>{" "}
-                                    {grant.eligibility || "N/A"}
-                                </p>
-                                <p>
-                                    <strong>Application Guidelines:</strong>{" "}
-                                    {grant.application_guidelines || "Not specified"}
+                                    {grant.eligibility && grant.eligibility.length > 150
+                                        ? `${grant.eligibility.slice(0, 150)}...`
+                                        : grant.eligibility || "N/A"}
                                 </p>
                                 <a
                                     href={grant.application_website}
                                     target="_blank"
                                     rel="noopener noreferrer"
+                                    className="btn btn-primary mt-2"
                                 >
                                     Apply Here
                                 </a>
-                            </li>
+                            </div>
                         ))}
-                    </ul>
-                    <div className="d-flex justify-content-between align-items-center">
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mt-4">
                         <button
                             onClick={() => handleSearch(currentPage - 1)}
                             disabled={currentPage === 1}
