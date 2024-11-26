@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchGrants } from "../api/grantsApi";
+import SaveGrantButton from './SaveGrantButton';
 
 const GrantsList = () => {
     const [searchTerm, setSearchTerm] = useState("");
@@ -126,14 +127,17 @@ const GrantsList = () => {
                                         ? `${grant.eligibility.slice(0, 150)}...`
                                         : grant.eligibility || "N/A"}
                                 </p>
-                                <a
-                                    href={grant.application_website}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="btn btn-primary mt-2"
-                                >
-                                    Apply Here
-                                </a>
+                                <div className="d-flex justify-content-between align-items-center mt-2">
+                                    <a
+                                        href={grant.application_website}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="btn btn-primary"
+                                    >
+                                        Apply Here
+                                    </a>
+                                    <SaveGrantButton grant={grant} />
+                                </div>
                             </div>
                         ))}
                     </div>

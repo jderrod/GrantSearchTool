@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { fetchGrantById } from "../api/grantsApi";
+import SaveGrantButton from "./SaveGrantButton";
 
 const GrantDetails = () => {
     const { grantId } = useParams();
+    const navigate = useNavigate();
     const [grant, setGrant] = useState(null);
     const [error, setError] = useState(null);
 
@@ -21,22 +23,35 @@ const GrantDetails = () => {
         loadGrantDetails();
     }, [grantId]);
 
+    const handleBack = () => {
+        navigate(-1); // This will take the user back one step in their history
+    };
+
     if (error) {
-        return <div>{error}</div>;
+        return <div className="container mt-4">{error}</div>;
     }
 
     if (!grant) {
-        return <div>Loading grant details...</div>;
+        return <div className="container mt-4">Loading grant details...</div>;
     }
 
-    // Render all available fields dynamically
     return (
         <div className="container mt-4">
+            <button 
+                onClick={handleBack}
+                className="btn btn-outline-primary mb-3"
+            >
+                ← Back
+            </button>
+
             <h1 className="text-center mb-4">
                 {grant.funder_name || grant.title || "Grant Details"}
             </h1>
             <div className="card">
                 <div className="card-body">
+                    <div className="d-flex justify-content-end mb-3">
+                        <SaveGrantButton grant={grant} />
+                    </div>
                     <div className="mb-3">
                         <strong>Description:</strong>
                         <p>{grant.description || "N/A"}</p>
