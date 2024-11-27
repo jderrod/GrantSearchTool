@@ -40,11 +40,23 @@ def get_grants():
 
     # Add filters
     if search_term:
-        grants_query += " AND (LOWER(title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
-        grants_data_query += " AND (LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
-        search_param = f"%{search_term}%"
-        grants_params.extend([search_param, search_param])
-        grants_data_params.extend([search_param, search_param])
+        keywords = search_term.split()
+        keyword_conditions = []
+        keyword_conditions_data = []
+    
+        for keyword in keywords:
+            grants_condition = "(LOWER(title) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
+            grants_data_condition = "(LOWER(funder_name) LIKE LOWER(?) OR LOWER(description) LIKE LOWER(?))"
+            
+            search_param = f"%{keyword}%"
+            grants_params.extend([search_param, search_param])
+            grants_data_params.extend([search_param, search_param])
+            
+            keyword_conditions.append(grants_condition)
+            keyword_conditions_data.append(grants_data_condition)
+        
+        grants_query += " AND " + " AND ".join(keyword_conditions)
+        grants_data_query += " AND " + " AND ".join(keyword_conditions_data)
 
     if region:
         grants_data_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
