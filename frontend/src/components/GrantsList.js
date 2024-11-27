@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchGrants } from "../api/grantsApi";
 import SaveGrantButton from './SaveGrantButton';
+import SavedFilters from './SavedFilters';
+
 
 const GrantsList = () => {
     const [searchTerm, setSearchTerm] = useState("");
@@ -11,7 +13,9 @@ const GrantsList = () => {
     const [grants, setGrants] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalResults, setTotalResults] = useState(0);
+    const [grantSource, setGrantSource] = useState("All");
     const resultsPerPage = 10;
+    const [showSavedFilters, setShowSavedFilters] = useState(false);
 
     const regions = ["All", "USA", "Europe", "Asia", "Africa"];
     const eligibilities = [
@@ -22,23 +26,50 @@ const GrantsList = () => {
         "Small businesses",
     ];
 
-    const handleSearch = async (page = 1) => {
+    const getCurrentFilters = () => ({
+        searchTerm,
+        region,
+        state,
+        eligibility,
+        grantSource
+    });
+
+    const handleLoadFilters = (filters) => {
+        setSearchTerm(filters.searchTerm || '');
+        setRegion(filters.region || '');
+        setState(filters.state || '');
+        setEligibility(filters.eligibility || '');
+        setGrantSource(filters.grantSource || 'All');
+        
+        handleSearch(1, false, filters);
+    };
+    
+    const handleSearch = async (page = 1, isNewSearch = true, filters = null) => {
         try {
             const offset = (page - 1) * resultsPerPage;
-            const selectedRegion = region === "All" ? "" : region;
-            const selectedEligibility = eligibility === "All" ? "" : eligibility;
+            const filtersToUse = filters || getCurrentFilters();
+            
+            const selectedRegion = filtersToUse.region === "All" ? "" : filtersToUse.region;
+            const selectedEligibility = filtersToUse.eligibility === "All" ? "" : filtersToUse.eligibility;
+            const selectedSource = filtersToUse.grantSource === "All" ? "" : filtersToUse.grantSource;
 
             const data = await fetchGrants(
-                searchTerm,
+                filtersToUse.searchTerm,
                 resultsPerPage,
                 offset,
                 selectedRegion,
                 selectedEligibility,
-                state
+                filtersToUse.state,
+                selectedSource
             );
+            
             setGrants(data.grants);
             setTotalResults(data.total_results);
-            setCurrentPage(page);
+            if (isNewSearch) {
+                setCurrentPage(1);
+            } else {
+                setCurrentPage(page);
+            }
         } catch (error) {
             console.error("Error fetching grants:", error);
         }
@@ -83,6 +114,17 @@ const GrantsList = () => {
             </div>
             <div className="mb-3">
                 <select
+                    value={grantSource}
+                    onChange={(e) => setGrantSource(e.target.value)}
+                    className="form-select"
+                >
+                    <option value="All">All Sources</option>
+                    <option value="federal">Federal Grants</option>
+                    <option value="private">Private Grants</option>
+                </select>
+            </div>
+            <div className="mb-3">
+                <select
                     value={eligibility}
                     onChange={(e) => setEligibility(e.target.value)}
                     className="form-select"
@@ -94,12 +136,28 @@ const GrantsList = () => {
                     ))}
                 </select>
             </div>
-            <button
-                onClick={() => handleSearch(1, true)}
-                className="btn btn-primary mb-4"
-            >
-                Search
-            </button>
+            <div className="d-flex gap-2 mb-4">
+                <button
+                    onClick={() => handleSearch(1, true)}
+                    className="btn btn-primary"
+                >
+                    Search
+                </button>
+                <button 
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowSavedFilters(prev => !prev)}
+                >
+                    {showSavedFilters ? 'Hide Saved Filters' : 'Show Saved Filters'}
+                </button>
+            </div>
+
+            {showSavedFilters && (
+                <SavedFilters
+                    currentFilters={getCurrentFilters()}
+                    onLoadFilter={handleLoadFilters}
+                    className="mb-4"
+                />
+            )}
             <h2>Search Results</h2>
             {grants.length > 0 ? (
                 <>

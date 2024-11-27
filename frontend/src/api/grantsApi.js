@@ -18,7 +18,8 @@ export const fetchGrants = async (
   offset = 0,
   region = "",
   eligibility = "",
-  state = ""
+  state = "",
+  source = ""  
 ) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/grants`, {
@@ -29,6 +30,7 @@ export const fetchGrants = async (
         region,
         eligibility,
         state,
+        source,
       },
     });
     return response.data;

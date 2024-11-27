@@ -20,6 +20,7 @@ def get_grants():
     eligibility = request.args.get("eligibility", None)
     limit = int(request.args.get("limit", 10))
     offset = int(request.args.get("offset", 0))
+    source = request.args.get("source", None)
 
     # Queries for grants.db
     grants_query = """
@@ -61,6 +62,12 @@ def get_grants():
     if region:
         grants_data_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
         grants_data_params.append(f"%{region.lower()}%")
+
+    if source:
+        grants_query += " AND source = ?"
+        grants_data_query += " AND source = ?"
+        grants_params.append(source)
+        grants_data_params.append(source)
 
     if state:
         grants_data_query += " AND LOWER(geographic_scope) LIKE LOWER(?)"
