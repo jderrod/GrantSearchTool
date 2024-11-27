@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchGrantById } from "../api/grantsApi";
-import SaveGrantButton from "./SaveGrantButton";
+import SaveGrantButton from './SaveGrantButton';
 
 const GrantDetails = () => {
     const { grantId } = useParams();
@@ -19,203 +19,181 @@ const GrantDetails = () => {
                 console.error("Error loading grant details:", err);
             }
         };
-
         loadGrantDetails();
     }, [grantId]);
 
-    const handleBack = () => {
-        navigate(-1); // This will take the user back one step in their history
+    const handleBack = () => navigate(-1);
+
+    const getValue = (key) => {
+        if (!grant) return 'N/A';
+        
+        switch(key) {
+            case 'funder_name':
+                return grant.funder_name || grant.title || 'N/A';
+            case 'deadlines':
+                return grant.deadlines || grant.closing_date || 'N/A';
+            case 'website':
+                return grant.website || grant.submission_url || 'N/A';
+            case 'application_website':
+                return grant.application_website || grant.submission_url || 'N/A';
+            default:
+                return grant[key] || 'N/A';
+        }
     };
 
     if (error) {
-        return <div className="container mt-4">{error}</div>;
+        return (
+            <div className="max-w-5xl mx-auto mt-4 px-4">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-600 text-sm">{error}</p>
+                </div>
+            </div>
+        );
     }
 
     if (!grant) {
-        return <div className="container mt-4">Loading grant details...</div>;
+        return (
+            <div className="max-w-5xl mx-auto mt-4 px-4">
+                <div className="animate-pulse space-y-3">
+                    <div className="h-6 bg-gray-200 rounded w-1/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/3"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="container mt-4">
+        <div className="max-w-5xl mx-auto p-4">
+            {/* Header Section */}
+            <div className="flex items-center justify-between mb-6">
             <button 
                 onClick={handleBack}
-                className="btn btn-outline-primary mb-3"
+                style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingTop: '6px',  // Added explicit padding
+                    paddingBottom: '6px'
+                }}
+                className="text-gray-600 hover:text-gray-900 text-sm"
             >
-                ← Back
+                <svg 
+                    style={{ width: '8px', height: '8px' }}
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                >
+                    <path 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round" 
+                        strokeWidth="2" 
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                    />
+                </svg>
+                <span className="ml-2">Back to Results</span>
             </button>
+            <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>  {/* Added wrapper */}
+                <SaveGrantButton grant={grant} />
+            </div>
+            </div>
 
-            <h1 className="text-center mb-4">
-                {grant.funder_name || grant.title || "Grant Details"}
-            </h1>
-            <div className="card">
-                <div className="card-body">
-                    <div className="d-flex justify-content-end mb-3">
-                        <SaveGrantButton grant={grant} />
+            {/* Main Content Card */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                {/* Title Section */}
+                <div className="p-4 border-b border-gray-200">
+                    <h1 className="text-xl font-semibold text-gray-900 mb-3">
+                        {getValue("funder_name")}
+                    </h1>
+                    <p className="text-gray-600 text-sm leading-relaxed">{getValue("description")}</p>
+                </div>
+
+                {/* Quick Info Section */}
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h3 className="text-xs font-medium text-gray-500 mb-1">Funding Range</h3>
+                            <p className="text-sm font-medium text-gray-900">
+                                {getValue("funding_amount")}
+                            </p>
+                        </div>
+                        <div>
+                            <h3 className="text-xs font-medium text-gray-500 mb-1">Deadline</h3>
+                            <p className="text-sm font-medium text-gray-900">
+                                {getValue("deadlines")}
+                            </p>
+                        </div>
                     </div>
-                    <div className="mb-3">
-                        <strong>Description:</strong>
-                        <p>{grant.description || "N/A"}</p>
+                </div>
+
+                {/* Main Details */}
+                <div className="p-4">
+                    <div className="space-y-4">
+                        {/* Eligibility Section */}
+                        <div>
+                            <h2 className="text-sm font-semibold text-gray-900 mb-2">Eligibility</h2>
+                            <p className="text-sm text-gray-600">{getValue("eligibility")}</p>
+                        </div>
+
+                        {/* Geographic Scope */}
+                        <div>
+                            <h2 className="text-sm font-semibold text-gray-900 mb-2">Geographic Scope</h2>
+                            <p className="text-sm text-gray-600">{getValue("geographic_scope")}</p>
+                        </div>
+
+                        {/* Application Guidelines */}
+                        <div>
+                            <h2 className="text-sm font-semibold text-gray-900 mb-2">Application Guidelines</h2>
+                            <p className="text-sm text-gray-600">{getValue("application_guidelines")}</p>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div>
+                            <h2 className="text-sm font-semibold text-gray-900 mb-2">Contact Information</h2>
+                            <div className="space-y-1">
+                                {getValue("email") !== 'N/A' && (
+                                    <p className="text-sm text-gray-600">
+                                        <span className="font-medium">Email: </span>
+                                        <a href={`mailto:${getValue("email")}`} className="text-blue-600 hover:underline">
+                                            {getValue("email")}
+                                        </a>
+                                    </p>
+                                )}
+                                {getValue("phone") !== 'N/A' && (
+                                    <p className="text-sm text-gray-600">
+                                        <span className="font-medium">Phone: </span>
+                                        {getValue("phone")}
+                                    </p>
+                                )}
+                                {getValue("website") !== 'N/A' && (
+                                    <p className="text-sm text-gray-600">
+                                        <span className="font-medium">Website: </span>
+                                        <a 
+                                            href={getValue("website")} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer" 
+                                            className="text-blue-600 hover:underline"
+                                        >
+                                            {getValue("website")}
+                                        </a>
+                                    </p>
+                                )}
+                            </div>
+                        </div>
                     </div>
-                    {grant.website && (
-                        <div className="mb-3">
-                            <strong>Website:</strong>
-                            <a href={grant.website} target="_blank" rel="noopener noreferrer">
-                                {grant.website}
-                            </a>
-                        </div>
-                    )}
-                    {grant.geographic_scope && (
-                        <div className="mb-3">
-                            <strong>Geographic Scope:</strong>
-                            <p>{grant.geographic_scope}</p>
-                        </div>
-                    )}
-                    {grant.eligibility && (
-                        <div className="mb-3">
-                            <strong>Eligibility:</strong>
-                            <p>{grant.eligibility}</p>
-                        </div>
-                    )}
-                    {grant.deadlines && (
-                        <div className="mb-3">
-                            <strong>Deadlines:</strong>
-                            <p>{grant.deadlines}</p>
-                        </div>
-                    )}
-                    {grant.grantmaker_type && (
-                        <div className="mb-3">
-                            <strong>Grantmaker Type:</strong>
-                            <p>{grant.grantmaker_type}</p>
-                        </div>
-                    )}
-                    {grant.grants_history_link && (
-                        <div className="mb-3">
-                            <strong>Grants History Link:</strong>
-                            <a
-                                href={grant.grants_history_link}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                {grant.grants_history_link}
-                            </a>
-                        </div>
-                    )}
-                    {grant.last_updated && (
-                        <div className="mb-3">
-                            <strong>Last Updated:</strong>
-                            <p>{grant.last_updated}</p>
-                        </div>
-                    )}
-                    {grant.address && (
-                        <div className="mb-3">
-                            <strong>Address:</strong>
-                            <p>{grant.address}</p>
-                        </div>
-                    )}
-                    {grant.email && (
-                        <div className="mb-3">
-                            <strong>Email:</strong>
-                            <a href={`mailto:${grant.email}`}>{grant.email}</a>
-                        </div>
-                    )}
-                    {grant.phone && (
-                        <div className="mb-3">
-                            <strong>Phone:</strong>
-                            <p>{grant.phone}</p>
-                        </div>
-                    )}
-                    {grant.primary_contact_name && (
-                        <div className="mb-3">
-                            <strong>Primary Contact Name:</strong>
-                            <p>{grant.primary_contact_name}</p>
-                        </div>
-                    )}
-                    {grant.primary_contact_title && (
-                        <div className="mb-3">
-                            <strong>Primary Contact Title:</strong>
-                            <p>{grant.primary_contact_title}</p>
-                        </div>
-                    )}
-                    {grant.primary_contact_email && (
-                        <div className="mb-3">
-                            <strong>Primary Contact Email:</strong>
-                            <a href={`mailto:${grant.primary_contact_email}`}>
-                                {grant.primary_contact_email}
-                            </a>
-                        </div>
-                    )}
-                    {grant.additional_contact_info && (
-                        <div className="mb-3">
-                            <strong>Additional Contact Info:</strong>
-                            <p>{grant.additional_contact_info}</p>
-                        </div>
-                    )}
-                    {grant.total_annual_giving && (
-                        <div className="mb-3">
-                            <strong>Total Annual Giving:</strong>
-                            <p>{grant.total_annual_giving}</p>
-                        </div>
-                    )}
-                    {grant.ein && (
-                        <div className="mb-3">
-                            <strong>Employer Identification Number (EIN):</strong>
-                            <p>{grant.ein}</p>
-                        </div>
-                    )}
-                    {grant.application_guidelines && (
-                        <div className="mb-3">
-                            <strong>Application Guidelines:</strong>
-                            <p>{grant.application_guidelines}</p>
-                        </div>
-                    )}
-                    {grant.application_website && (
-                        <div className="mb-3">
-                            <strong>Application Website:</strong>
-                            <a
-                                href={grant.application_website}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                {grant.application_website}
-                            </a>
-                        </div>
-                    )}
-                    {grant.number && (
-                        <div className="mb-3">
-                            <strong>Grant Number:</strong>
-                            <p>{grant.number}</p>
-                        </div>
-                    )}
-                    {grant.agency && (
-                        <div className="mb-3">
-                            <strong>Agency:</strong>
-                            <p>{grant.agency}</p>
-                        </div>
-                    )}
-                    {grant.funding_amount && (
-                        <div className="mb-3">
-                            <strong>Funding Amount:</strong>
-                            <p>{grant.funding_amount}</p>
-                        </div>
-                    )}
-                    {grant.closing_date && (
-                        <div className="mb-3">
-                            <strong>Closing Date:</strong>
-                            <p>{grant.closing_date}</p>
-                        </div>
-                    )}
-                    {grant.submission_url && (
-                        <div className="mb-3">
-                            <strong>Submission URL:</strong>
-                            <a
-                                href={grant.submission_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                {grant.submission_url}
-                            </a>
-                        </div>
-                    )}
+                </div>
+
+                {/* Action Footer */}
+                <div className="p-4 bg-gray-50 border-t border-gray-200">
+                    <div className="flex justify-end">
+                        <a 
+                            href={getValue("application_website")}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        >
+                            Apply Now
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
