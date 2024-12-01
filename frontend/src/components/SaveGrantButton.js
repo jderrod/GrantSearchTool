@@ -20,6 +20,10 @@ const SaveGrantButton = ({ grant }) => {
         id: grant.id,
         funder_name: grant.funder_name || grant.title || 'Untitled Grant',
         description: grant.description || 'No description available',
+        source: grant.source || (grant.submission_url ? 'federal' : 'private'), // Determine source
+        geographic_scope: grant.geographic_scope || 'N/A',
+        eligibility: grant.eligibility || 'N/A',
+        application_website: grant.application_website || grant.submission_url || grant.website || 'N/A',
         savedAt: new Date().toISOString()
       });
       localStorage.setItem('savedGrants', JSON.stringify(savedGrants));

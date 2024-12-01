@@ -4,7 +4,7 @@ import { fetchGrantById } from "../api/grantsApi";
 import SaveGrantButton from './SaveGrantButton';
 
 const GrantDetails = () => {
-    const { grantId } = useParams();
+    const { grantId, source } = useParams();  // Get both grantId and source from URL
     const navigate = useNavigate();
     const [grant, setGrant] = useState(null);
     const [error, setError] = useState(null);
@@ -12,7 +12,17 @@ const GrantDetails = () => {
     useEffect(() => {
         const loadGrantDetails = async () => {
             try {
-                const data = await fetchGrantById(grantId);
+                // Try to get source from URL params first
+                let grantSource = source;
+                
+                // If source isn't in URL, try to get it from localStorage
+                if (!grantSource) {
+                    const searchResults = JSON.parse(localStorage.getItem('searchResults') || '[]');
+                    const savedGrant = searchResults.find(g => g.id === parseInt(grantId));
+                    grantSource = savedGrant?.source || 'federal'; // Default to federal if not found
+                }
+
+                const data = await fetchGrantById(grantId, grantSource);
                 setGrant(data);
             } catch (err) {
                 setError("Failed to load grant details.");
@@ -20,7 +30,7 @@ const GrantDetails = () => {
             }
         };
         loadGrantDetails();
-    }, [grantId]);
+    }, [grantId, source]);
 
     const handleBack = () => navigate(-1);
 
@@ -67,34 +77,34 @@ const GrantDetails = () => {
         <div className="max-w-5xl mx-auto p-4">
             {/* Header Section */}
             <div className="flex items-center justify-between mb-6">
-            <button 
-                onClick={handleBack}
-                style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    paddingTop: '6px',  // Added explicit padding
-                    paddingBottom: '6px'
-                }}
-                className="text-gray-600 hover:text-gray-900 text-sm"
-            >
-                <svg 
-                    style={{ width: '8px', height: '8px' }}
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
+                <button 
+                    onClick={handleBack}
+                    style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        paddingTop: '6px',
+                        paddingBottom: '6px'
+                    }}
+                    className="text-gray-600 hover:text-gray-900 text-sm"
                 >
-                    <path 
-                        strokeLinecap="round" 
-                        strokeLinejoin="round" 
-                        strokeWidth="2" 
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
-                </svg>
-                <span className="ml-2">Back to Results</span>
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>  {/* Added wrapper */}
-                <SaveGrantButton grant={grant} />
-            </div>
+                    <svg 
+                        style={{ width: '8px', height: '8px' }}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                    >
+                        <path 
+                            strokeLinecap="round" 
+                            strokeLinejoin="round" 
+                            strokeWidth="2" 
+                            d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                        />
+                    </svg>
+                    <span className="ml-2">Back to Results</span>
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', height: '32px' }}>
+                    <SaveGrantButton grant={grant} />
+                </div>
             </div>
 
             {/* Main Content Card */}
@@ -125,6 +135,7 @@ const GrantDetails = () => {
                     </div>
                 </div>
 
+                {/* Rest of the component remains the same... */}
                 {/* Main Details */}
                 <div className="p-4">
                     <div className="space-y-4">

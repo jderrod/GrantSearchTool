@@ -65,7 +65,7 @@ const SavedGrants = () => {
                 <div className="d-flex justify-content-between align-items-start">
                   <div>
                     <Link 
-                      to={`/grants/${grant.id}`} 
+                      to={`/grants/${grant.source}/${grant.id}`}
                       className="h5 text-primary mb-2 d-block text-decoration-none"
                     >
                       {grant.funder_name}

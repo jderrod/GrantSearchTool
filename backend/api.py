@@ -117,36 +117,50 @@ def get_grants():
         "total_results": total_results
     })
 
-
-@app.route("/api/grants/<int:grant_id>", methods=["GET"])
+@app.route("/api/grants/<string:source>/<int:grant_id>", methods=["GET"])
 @cross_origin()
-def get_grant(grant_id):
+def get_grant(source, grant_id):
     """
-    Fetch a single grant by its ID from either database.
+    Fetch a single grant by its ID from the specified database.
+    
+    Args:
+        source (str): The source database ('federal' or 'private')
+        grant_id (int): The ID of the grant to retrieve
+        
+    Returns:
+        JSON response containing the grant data or error message
     """
-    # Search grants.db
-    grants_query = "SELECT * FROM grants WHERE id = ?"
-    grants_conn = connect_db("grants.db")
-    grants_cursor = grants_conn.cursor()
-    grants_cursor.execute(grants_query, (grant_id,))
-    grant = grants_cursor.fetchone()
-    grants_conn.close()
+    try:
+        if source == "federal":
+            db_name = "grants.db"
+            query = """
+                SELECT *, 'federal' as source
+                FROM grants 
+                WHERE id = ?
+            """
+        elif source == "private":
+            db_name = "grants_data.db"
+            query = """
+                SELECT *, 'private' as source
+                FROM grants 
+                WHERE id = ?
+            """
+        else:
+            return jsonify({"error": "Invalid source. Must be 'federal' or 'private'"}), 400
 
-    if grant:
-        return jsonify(dict(grant))
+        conn = connect_db(db_name)
+        cursor = conn.cursor()
+        cursor.execute(query, (grant_id,))
+        grant = cursor.fetchone()
+        conn.close()
 
-    # Search grants_data.db
-    grants_data_query = "SELECT * FROM grants WHERE id = ?"
-    grants_data_conn = connect_db("grants_data.db")
-    grants_data_cursor = grants_data_conn.cursor()
-    grants_data_cursor.execute(grants_data_query, (grant_id,))
-    grant_data = grants_data_cursor.fetchone()
-    grants_data_conn.close()
+        if grant:
+            return jsonify(dict(grant))
+        else:
+            return jsonify({"error": f"Grant not found in {source} database"}), 404
 
-    if grant_data:
-        return jsonify(dict(grant_data))
-
-    return jsonify({"error": "Grant not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True)

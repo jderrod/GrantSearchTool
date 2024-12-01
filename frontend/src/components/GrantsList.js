@@ -1,22 +1,37 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { fetchGrants } from "../api/grantsApi";
 import SaveGrantButton from './SaveGrantButton';
 import SavedFilters from './SavedFilters';
 
-
 const GrantsList = () => {
-    const [searchTerm, setSearchTerm] = useState("");
-    const [region, setRegion] = useState("");
-    const [state, setState] = useState("");
-    const [eligibility, setEligibility] = useState("");
+    const location = useLocation();
+    
+    // State declarations
+    const [searchTerm, setSearchTerm] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.searchTerm || ""
+    );
+    const [region, setRegion] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.region || ""
+    );
+    const [state, setState] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.state || ""
+    );
+    const [eligibility, setEligibility] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.eligibility || ""
+    );
     const [grants, setGrants] = useState([]);
-    const [currentPage, setCurrentPage] = useState(1);
+    const [currentPage, setCurrentPage] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.currentPage || 1
+    );
     const [totalResults, setTotalResults] = useState(0);
-    const [grantSource, setGrantSource] = useState("All");
+    const [grantSource, setGrantSource] = useState(() => 
+        JSON.parse(localStorage.getItem('lastSearchState'))?.grantSource || "All"
+    );
     const resultsPerPage = 10;
     const [showSavedFilters, setShowSavedFilters] = useState(false);
 
+    // Constants
     const regions = ["All", "USA", "Europe", "Asia", "Africa"];
     const eligibilities = [
         "All",
@@ -25,6 +40,43 @@ const GrantsList = () => {
         "Individuals",
         "Small businesses",
     ];
+
+    // Scroll position effect
+    useEffect(() => {
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY;
+            const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollPercentage = (scrollPosition / documentHeight) * 100;
+            localStorage.setItem('grantsListScrollPosition', scrollPercentage.toString());
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Restore scroll position after results load
+    useEffect(() => {
+        if (grants.length > 0) {
+            setTimeout(() => {
+                const savedScrollPercentage = parseFloat(localStorage.getItem('grantsListScrollPosition') || '0');
+                const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const scrollPosition = (savedScrollPercentage / 100) * documentHeight;
+                
+                window.scrollTo({
+                    top: scrollPosition,
+                    behavior: 'instant'
+                });
+            }, 100);
+        }
+    }, [grants]);
+
+    // Load last search results if they exist
+    useEffect(() => {
+        const lastSearchState = JSON.parse(localStorage.getItem('lastSearchState'));
+        if (lastSearchState) {
+            handleSearch(lastSearchState.currentPage, false, lastSearchState);
+        }
+    }, []);
 
     const getCurrentFilters = () => ({
         searchTerm,
@@ -41,11 +93,23 @@ const GrantsList = () => {
         setEligibility(filters.eligibility || '');
         setGrantSource(filters.grantSource || 'All');
         
-        handleSearch(1, false, filters);
+        handleSearch(1, true, filters);
     };
-    
+
+    const handleNextPage = () => {
+        handleSearch(currentPage + 1, false, getCurrentFilters());
+    };
+
+    const handlePrevPage = () => {
+        handleSearch(currentPage - 1, false, getCurrentFilters());
+    };
+
     const handleSearch = async (page = 1, isNewSearch = true, filters = null) => {
         try {
+            if (isNewSearch) {
+                localStorage.removeItem('grantsListScrollPosition');
+            }
+
             const offset = (page - 1) * resultsPerPage;
             const filtersToUse = filters || getCurrentFilters();
             
@@ -65,11 +129,17 @@ const GrantsList = () => {
             
             setGrants(data.grants);
             setTotalResults(data.total_results);
-            if (isNewSearch) {
-                setCurrentPage(1);
-            } else {
-                setCurrentPage(page);
-            }
+
+            const newPage = isNewSearch ? 1 : page;
+            setCurrentPage(newPage);
+
+            const searchState = {
+                ...filtersToUse,
+                currentPage: newPage,
+                lastSearched: new Date().toISOString()
+            };
+            localStorage.setItem('lastSearchState', JSON.stringify(searchState));
+            localStorage.setItem('searchResults', JSON.stringify(data.grants));
         } catch (error) {
             console.error("Error fetching grants:", error);
         }
@@ -158,6 +228,7 @@ const GrantsList = () => {
                     className="mb-4"
                 />
             )}
+            
             <h2>Search Results</h2>
             {grants.length > 0 ? (
                 <>
@@ -167,7 +238,7 @@ const GrantsList = () => {
                                 key={index}
                                 className="grant-card mb-3 p-3 border rounded shadow-sm"
                             >
-                                <Link to={`/grants/${grant.id}`} className="grant-title-link">
+                                <Link to={`/grants/${grant.source}/${grant.id}`} className="grant-title-link">
                                     <h5 className="grant-title">{grant.funder_name}</h5>
                                 </Link>
                                 <p className="grant-description">
@@ -201,7 +272,7 @@ const GrantsList = () => {
                     </div>
                     <div className="d-flex justify-content-between align-items-center mt-4">
                         <button
-                            onClick={() => handleSearch(currentPage - 1)}
+                            onClick={handlePrevPage}
                             disabled={currentPage === 1}
                             className="btn btn-secondary"
                         >
@@ -211,8 +282,8 @@ const GrantsList = () => {
                             Page {currentPage} of {totalPages}
                         </span>
                         <button
-                            onClick={() => handleSearch(currentPage + 1)}
-                            disabled={currentPage === totalPages}
+                            onClick={handleNextPage}
+                            disabled={currentPage >= totalPages}
                             className="btn btn-secondary"
                         >
                             Next

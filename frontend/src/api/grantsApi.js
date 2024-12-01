@@ -10,6 +10,7 @@ const API_BASE_URL = "http://localhost:5000/api"; // Adjust the port if necessar
  * @param {string} region - Region filter.
  * @param {string} eligibility - Eligibility filter.
  * @param {string} state - State filter.
+ * @param {string} source - Source filter ('federal' or 'private').
  * @returns {Promise<Object>} - Response containing grants and total results.
  */
 export const fetchGrants = async (
@@ -41,13 +42,19 @@ export const fetchGrants = async (
 };
 
 /**
- * Fetch details of a single grant by ID.
+ * Fetch details of a single grant by ID from the specified source.
  * @param {number} grantId - ID of the grant.
+ * @param {string} source - Source of the grant ('federal' or 'private').
  * @returns {Promise<Object>} - Response containing grant details.
+ * @throws {Error} - If the grant cannot be found or if there's an API error.
  */
-export const fetchGrantById = async (grantId) => {
+export const fetchGrantById = async (grantId, source) => {
+  if (!source) {
+    throw new Error("Source is required to fetch grant details");
+  }
+  
   try {
-    const response = await axios.get(`${API_BASE_URL}/grants/${grantId}`);
+    const response = await axios.get(`${API_BASE_URL}/grants/${source}/${grantId}`);
     return response.data;
   } catch (error) {
     console.error("Error fetching grant by ID:", error);
