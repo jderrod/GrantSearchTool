@@ -160,19 +160,18 @@ const GrantsList = () => {
                 />
             </div>
             <div className="mb-3">
-                <select
-                    value={region}
-                    onChange={(e) => setRegion(e.target.value)}
-                    className="form-select"
-                >
-                    <option value="">All Regions</option>
-                    {regions.map((reg) => (
-                        <option key={reg} value={reg}>
-                            {reg}
-                        </option>
-                    ))}
-                </select>
-            </div>
+               <select
+                   value={region}
+                   onChange={(e) => setRegion(e.target.value)}
+                   className="form-select"
+               >
+                   <option value="">All Regions</option>
+                   <option value="USA">USA</option>
+                   <option value="Europe">Europe</option>
+                   <option value="Asia">Asia</option>
+                   <option value="Africa">Africa</option>
+               </select>
+           </div>
             <div className="mb-3">
                 <input
                     type="text"
@@ -233,42 +232,43 @@ const GrantsList = () => {
             {grants.length > 0 ? (
                 <>
                     <div className="results-container">
-                        {grants.map((grant, index) => (
-                            <div
-                                key={index}
-                                className="grant-card mb-3 p-3 border rounded shadow-sm"
-                            >
-                                <Link to={`/grants/${grant.source}/${grant.id}`} className="grant-title-link">
-                                    <h5 className="grant-title">{grant.funder_name}</h5>
-                                </Link>
-                                <p className="grant-description">
-                                    {grant.description && grant.description.length > 600
-                                        ? `${grant.description.slice(0, 600)}...`
-                                        : grant.description || "No description available"}
-                                </p>
+                    {grants.map((grant, index) => (
+                        <div
+                            key={index}
+                            className="grant-card mb-3 p-3 border rounded shadow-sm"
+                        >
+                            <Link to={`/grants/${grant.source}/${grant.id}`} className="grant-title-link">
+                                <h5 className="grant-title">{grant.funder_name}</h5>
+                            </Link>
+                            <p className="grant-description">
+                                {grant.description && grant.description.length > 600
+                                    ? `${grant.description.slice(0, 600)}...`
+                                    : grant.description || "No description available"}
+                            </p>
+                            <p>
+                                <strong>Eligibility:</strong>{" "}
+                                {grant.eligibility && grant.eligibility.length > 150
+                                    ? `${grant.eligibility.slice(0, 150)}...`
+                                    : grant.eligibility || "N/A"}
+                            </p>
+                            {(grant.submission_url || grant.current_url) && (
                                 <p>
-                                    <strong>Geographic Scope:</strong>{" "}
-                                    {grant.geographic_scope || "N/A"}
-                                </p>
-                                <p>
-                                    <strong>Eligibility:</strong>{" "}
-                                    {grant.eligibility && grant.eligibility.length > 150
-                                        ? `${grant.eligibility.slice(0, 150)}...`
-                                        : grant.eligibility || "N/A"}
-                                </p>
-                                <div className="d-flex justify-content-between align-items-center mt-2">
-                                    <a
-                                        href={grant.application_website}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="btn btn-primary"
+                                    <strong>Link:</strong>{" "}
+                                    <a 
+                                        href={grant.submission_url || grant.current_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="text-primary"
                                     >
-                                        Apply Here
+                                        {grant.submission_url || grant.current_url}
                                     </a>
-                                    <SaveGrantButton grant={grant} />
-                                </div>
+                                </p>
+                            )}
+                            <div className="d-flex justify-content-between align-items-center mt-2">
+                                <SaveGrantButton grant={grant} />
                             </div>
-                        ))}
+                        </div>
+                    ))}
                     </div>
                     <div className="d-flex justify-content-between align-items-center mt-4">
                         <button

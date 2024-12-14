@@ -46,6 +46,14 @@ const GrantDetails = () => {
                 return grant.website || grant.submission_url || 'N/A';
             case 'application_website':
                 return grant.application_website || grant.submission_url || 'N/A';
+            case 'funding_amount':
+                // Handle funding amount based on source
+                if (grant.source === 'federal') {
+                    return grant.funding_amount || 'N/A';
+                } else if (grant.source === 'private') {
+                    return grant.total_annual_giving || 'N/A';
+                }
+                return 'N/A';
             default:
                 return grant[key] || 'N/A';
         }
@@ -121,7 +129,9 @@ const GrantDetails = () => {
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <h3 className="text-xs font-medium text-gray-500 mb-1">Funding Range</h3>
+                            <h3 className="text-xs font-medium text-gray-500 mb-1">
+                                {grant.source === 'private' ? 'Total Annual Giving' : 'Funding Amount'}
+                            </h3>
                             <p className="text-sm font-medium text-gray-900">
                                 {getValue("funding_amount")}
                             </p>
