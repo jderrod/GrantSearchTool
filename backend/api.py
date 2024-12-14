@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
 import sqlite3
+import os
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -163,4 +164,7 @@ def get_grant(source, grant_id):
         return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    # Get port from environment variable (Render provides this)
+    port = int(os.environ.get("PORT", 5000))
+    # Run on all interfaces with the provided port
+    app.run(host="0.0.0.0", port=port, debug=False)
