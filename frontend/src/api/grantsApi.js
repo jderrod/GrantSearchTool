@@ -1,6 +1,7 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000/api"; // Adjust the port if necessary
+const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
+console.log('API Base URL:', API_BASE_URL); // Log the base URL when the file loads
 
 /**
  * Fetch grants from both databases with specified filters.
@@ -10,7 +11,6 @@ const API_BASE_URL = "http://localhost:5000/api"; // Adjust the port if necessar
  * @param {string} region - Region filter.
  * @param {string} eligibility - Eligibility filter.
  * @param {string} state - State filter.
- * @param {string} source - Source filter ('federal' or 'private').
  * @returns {Promise<Object>} - Response containing grants and total results.
  */
 export const fetchGrants = async (
@@ -23,6 +23,17 @@ export const fetchGrants = async (
   source = ""  
 ) => {
   try {
+    console.log('Making API request to:', `${API_BASE_URL}/grants`);
+    console.log('With params:', {
+      search_term: searchTerm,
+      limit,
+      offset,
+      region,
+      eligibility,
+      state,
+      source,
+    });
+
     const response = await axios.get(`${API_BASE_URL}/grants`, {
       params: {
         search_term: searchTerm,
@@ -34,30 +45,39 @@ export const fetchGrants = async (
         source,
       },
     });
+    console.log('API Response:', response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching grants:", error);
+    console.error("Error details:", {
+      message: error.message,
+      url: error?.config?.url,
+      method: error?.config?.method,
+      params: error?.config?.params
+    });
     throw error;
   }
 };
 
 /**
- * Fetch details of a single grant by ID from the specified source.
+ * Fetch details of a single grant by ID.
  * @param {number} grantId - ID of the grant.
- * @param {string} source - Source of the grant ('federal' or 'private').
  * @returns {Promise<Object>} - Response containing grant details.
- * @throws {Error} - If the grant cannot be found or if there's an API error.
  */
-export const fetchGrantById = async (grantId, source) => {
-  if (!source) {
-    throw new Error("Source is required to fetch grant details");
-  }
-  
+export const fetchGrantById = async (grantId) => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/grants/${source}/${grantId}`);
+    console.log('Fetching grant details for ID:', grantId);
+    console.log('Making request to:', `${API_BASE_URL}/grants/${grantId}`);
+
+    const response = await axios.get(`${API_BASE_URL}/grants/${grantId}`);
+    console.log('Grant details response:', response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching grant by ID:", error);
+    console.error("Error fetching grant details:", {
+      message: error.message,
+      url: error?.config?.url,
+      method: error?.config?.method,
+      grantId
+    });
     throw error;
   }
 };
