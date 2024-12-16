@@ -3,17 +3,6 @@ import axios from "axios";
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
 console.log('API Base URL:', API_BASE_URL);
 
-/**
- * Fetch grants from both databases with specified filters.
- * @param {string} searchTerm - Keyword to search in title and description fields.
- * @param {number} limit - Number of results per page.
- * @param {number} offset - Pagination offset.
- * @param {string} region - Region filter.
- * @param {string} eligibility - Eligibility filter.
- * @param {string} state - State filter.
- * @param {string} source - Source filter ('federal' or 'private').
- * @returns {Promise<Object>} - Response containing grants and total results.
- */
 export const fetchGrants = async (
   searchTerm = "",
   limit = 10,
@@ -60,33 +49,30 @@ export const fetchGrants = async (
 };
 
 /**
- * Fetch details of a single grant by ID.
- * Tries both federal and private sources since the source isn't known beforehand.
+ * Fetch details of a single grant by ID and source.
  * @param {number} grantId - ID of the grant to retrieve.
- * @returns {Promise<Object>} - Response containing grant details from either federal or private source.
+ * @param {string} source - Source of the grant ('federal' or 'private').
+ * @returns {Promise<Object>} - Response containing grant details.
  */
-export const fetchGrantById = async (grantId) => {
+export const fetchGrantById = async (grantId, source) => {
   try {
-    console.log('Fetching grant details for ID:', grantId);
+    console.log('Fetching grant details for ID:', grantId, 'from source:', source);
     
-    // Try federal source first
-    try {
-      const federalResponse = await axios.get(`${API_BASE_URL}/grants/federal/${grantId}`);
-      console.log('Federal grant details response:', federalResponse.data);
-      return federalResponse.data;
-    } catch (federalError) {
-      console.log('Federal grant not found, trying private source');
-      // If federal fails, try private source
-      const privateResponse = await axios.get(`${API_BASE_URL}/grants/private/${grantId}`);
-      console.log('Private grant details response:', privateResponse.data);
-      return privateResponse.data;
+    if (!source) {
+      throw new Error('Source is required to fetch grant details');
     }
+
+    const response = await axios.get(`${API_BASE_URL}/grants/${source}/${grantId}`);
+    console.log('Grant details response:', response.data);
+    return response.data;
+    
   } catch (error) {
     console.error("Error fetching grant details:", {
       message: error.message,
       url: error?.config?.url,
       method: error?.config?.method,
-      grantId
+      grantId,
+      source
     });
     throw error;
   }
