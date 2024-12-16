@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || "http://localhost:5000/api";
-console.log('API Base URL:', API_BASE_URL); // Log the base URL when the file loads
+console.log('API Base URL:', API_BASE_URL);
 
 /**
  * Fetch grants from both databases with specified filters.
@@ -11,6 +11,7 @@ console.log('API Base URL:', API_BASE_URL); // Log the base URL when the file lo
  * @param {string} region - Region filter.
  * @param {string} eligibility - Eligibility filter.
  * @param {string} state - State filter.
+ * @param {string} source - Source filter ('federal' or 'private').
  * @returns {Promise<Object>} - Response containing grants and total results.
  */
 export const fetchGrants = async (
@@ -60,17 +61,26 @@ export const fetchGrants = async (
 
 /**
  * Fetch details of a single grant by ID.
- * @param {number} grantId - ID of the grant.
- * @returns {Promise<Object>} - Response containing grant details.
+ * Tries both federal and private sources since the source isn't known beforehand.
+ * @param {number} grantId - ID of the grant to retrieve.
+ * @returns {Promise<Object>} - Response containing grant details from either federal or private source.
  */
 export const fetchGrantById = async (grantId) => {
   try {
     console.log('Fetching grant details for ID:', grantId);
-    console.log('Making request to:', `${API_BASE_URL}/grants/${grantId}`);
-
-    const response = await axios.get(`${API_BASE_URL}/grants/${grantId}`);
-    console.log('Grant details response:', response.data);
-    return response.data;
+    
+    // Try federal source first
+    try {
+      const federalResponse = await axios.get(`${API_BASE_URL}/grants/federal/${grantId}`);
+      console.log('Federal grant details response:', federalResponse.data);
+      return federalResponse.data;
+    } catch (federalError) {
+      console.log('Federal grant not found, trying private source');
+      // If federal fails, try private source
+      const privateResponse = await axios.get(`${API_BASE_URL}/grants/private/${grantId}`);
+      console.log('Private grant details response:', privateResponse.data);
+      return privateResponse.data;
+    }
   } catch (error) {
     console.error("Error fetching grant details:", {
       message: error.message,
